@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from vq.activation import get_activation_cls
+from vq.config import ConfigMixin
 from vq.vq import VectorQuantizer
 
 
@@ -425,7 +426,7 @@ class Decoder(nn.Module):
         return x
 
 
-class VQVAE(nn.Module):
+class VQVAE(nn.Module, ConfigMixin):
     def __init__(
         self,
         num_embeddings: int = 16384,
