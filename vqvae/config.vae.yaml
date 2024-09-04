@@ -1,0 +1,48 @@
+run:
+  folder: checkpoint
+  name: vqvae.vae
+
+logging:
+  filename: log.log
+  interval: 100
+  frequent_until: 100
+  frequent_interval: 5
+
+repr:
+  seed: 3407
+  use_deterministic_algorithms: true
+  warn_only: true
+  cudnn_benchmark: false
+
+data:
+  image_size: 256
+  dataset_dir: data/imagenet/train
+
+  batch_size: 8
+  num_workers: 8
+
+model:
+  num_embeddings: 16384
+  embed_dim: 4
+  block_out_channels: [64, 128, 256, 256]
+  layers_per_block: 1
+  activation: swish
+  image_channels: 3
+  residual_scale_init: 0.001
+  latent_dim: null
+
+optimizer:
+  lr: 0.001
+  betas:
+  - 0.9
+  - 0.999
+
+env:
+  compile: default
+  strategy: ddp  # change to ddp for dist.
+
+train:
+  num_iterations: 200000
+
+  running: 100
+  save_every: 10000
