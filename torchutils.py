@@ -20,6 +20,9 @@ import math
 import os
 import random
 import re
+import statistics
+import time
+from collections import deque
 from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, ClassVar, Sequence
@@ -45,7 +48,7 @@ if parse_version(torch.__version__) >= parse_version('2.3.0'):
 else:
     dcpsd = None
 
-__version__ = '0.0.3'
+__version__ = '0.1.0'
 
 
 class _State:
@@ -327,6 +330,78 @@ def get_now_string(format: str = '%Y%m%d%H%M%S', use_jst: bool = True) -> str:
 def makedirs0(name: str, exist_ok: bool = False):
     """os.makedirs() only on primary process."""
     os.makedirs(name, exist_ok=exist_ok)
+
+
+class Timer:
+    """A simple timer."""
+
+    def __init__(
+        self, track_durations: int | None = None, sync_cuda: bool = False, time_fn: Callable = time.perf_counter
+    ):
+        """Construct simple timer.
+
+        Args:
+        ----
+            track_durations (int | None, optional): Number of durations to track. Default: None.
+            sync_cuda (bool, optional): Call torch.cuda.synchronize() before getting time. This must be True to get the
+                right duration. Default: False.
+            time_fn (Callable, optional): Callable which returns the time in seconds. Default: time.perf_counter.
+
+        """
+        self.sync_cuda = sync_cuda
+        self._get_time_fn = time_fn
+        self.start_time = None
+
+        self.last_duration = None
+        self.durations = (
+            deque(maxlen=track_durations) if isinstance(track_durations, int) and track_durations > 1 else None
+        )
+
+    @property
+    def is_full(self) -> bool:
+        """Is full."""
+        if self.durations is None:
+            return True
+
+        return len(self.durations) == self.durations.maxlen
+
+    def get_time(self) -> int:
+        """Get current time."""
+        if self.sync_cuda:
+            torch.cuda.synchronize()
+        return self._get_time_fn()
+
+    def start(self):
+        """Start timer."""
+        self.start_time = self.get_time()
+
+    def stop(self):
+        """Stop timer and track duration."""
+        duration = self.get_time() - self.start_time
+        self.last_duration = duration
+
+        if self.durations is not None:
+            self.durations.append(duration)
+
+    def eta(self, left: int, return_str: bool = True) -> datetime.timedelta | str:
+        """Calculate ETA.
+
+        Args:
+        ----
+            left (int): How many iterations are left?
+            return_str (bool, optional): Return the ETA as a str. Default: True.
+
+        """
+        if self.durations is not None:
+            mean_duration = statistics.mean(self.durations)
+        else:
+            mean_duration = self.last_duration
+
+        eta = datetime.timedelta(seconds=left * mean_duration)
+        if return_str:
+            return str(eta)
+
+        return eta
 
 
 #######################################################################################################################
