@@ -155,6 +155,9 @@ def train_loop(
                     value_range=(-1, 1),
                 )
 
+            if batches_done >= config.train.num_interations:
+                break
+
         # Checkpoint for resuming.
         torchutils.save_checkpoint(
             os.path.join(checkpoint_folder, 'bins'),
