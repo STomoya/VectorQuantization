@@ -155,7 +155,7 @@ def train_loop(
                     value_range=(-1, 1),
                 )
 
-            if batches_done >= config.train.num_interations:
+            if batches_done >= config.train.num_iterations:
                 break
 
         # Checkpoint for resuming.
