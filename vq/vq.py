@@ -39,7 +39,19 @@ class VectorQuantizer(nn.Module):
 
         return x_q, loss
 
-    def get_codebook_entry(self, indices: torch.LongTensor, shape: tuple[int, ...]) -> torch.Tensor:
+    def get_codebook_indices(self, x: torch.Tensor):
+        torch._assert(x.size(1) == self.embed_dim, f'Number of embeddings must be "{self.embed_dim}".')
+        B, C, H, W = x.size()
+        x = x.permute(0, 2, 3, 1).contiguous()  # [BHWC]
+        x_flattened = x.reshape(-1, self.embed_dim)  # [B*H*W,C]
+
+        closest_indices = torch.argmin(torch.cdist(x_flattened, self.embedding.weight), dim=1)  # [B*H*W,1]
+        closest_indices = closest_indices.reshape(B, H, W, 1)  # [BHW1]
+        closest_indices = closest_indices.permute(0, 3, 1, 2).contiguous()  # [B1HW]
+
+        return closest_indices
+
+    def get_codebook_entry(self, indices: torch.LongTensor, shape: tuple[int, ...] | None = None) -> torch.Tensor:
         z_q: torch.Tensor = self.embedding(indices)
 
         if shape is not None:
