@@ -439,7 +439,7 @@ class VQVAE(nn.Module, ConfigMixin):
         latent_dim: int | None = None,
     ):
         super().__init__()
-
+        self.num_embeddings = num_embeddings
         latent_dim = latent_dim or embed_dim
 
         self.encoder = Encoder(
@@ -464,13 +464,22 @@ class VQVAE(nn.Module, ConfigMixin):
             residual_scale_init=residual_scale_init,
         )
 
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
+    def encode(self, x: torch.Tensor, return_indices: bool = False) -> torch.Tensor:
         x = self.encoder(x)
         x = self.pre_vq_conv(x)
+        if return_indices:
+            x = self.quantize.get_codebook_indices(x)
+            x = x.squeeze()
         return x
 
-    def decode(self, x: torch.Tensor, return_loss: bool = True) -> torch.Tensor:
-        x, loss = self.quantize(x)
+    def decode(self, x: torch.Tensor, return_loss: bool = True, input_is_indices: bool = False) -> torch.Tensor:
+        if input_is_indices:
+            # x: [B1HW] (output shape of PixelCNN.)
+            x = self.quantize.embedding(x).squeeze()  # [BHWC]
+            x = x.permute(0, 3, 1, 2).contiguous()  # [BCHW]
+            loss = 0
+        else:
+            x, loss = self.quantize(x)
         x = self.pos_vq_conv(x)
         x = self.decoder(x)
 

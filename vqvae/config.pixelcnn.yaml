@@ -1,0 +1,57 @@
+run:
+  folder: checkpoint
+  name: vqvae.pixelcnn
+
+logging:
+  filename: log.log
+  interval: 100
+  frequent_until: 100
+  frequent_interval: 5
+
+repr:
+  seed: 3407
+  use_deterministic_algorithms: true
+  warn_only: true
+  cudnn_benchmark: false
+
+vqvae:
+  config: checkpoint/vqvae.vae/model.json
+  pretrained: checkpoint/vqvae.vae/200.00k.pt
+
+data:
+  image_size: 256
+  dataset_dir: data/imagenet/train
+
+  batch_size: 32
+  num_workers: 8
+
+model:
+  num_embeddings: 16384
+  channels: 256
+  kernel_size: 3
+  image_dims:
+  - 16
+  - 16
+  num_blocks: 5
+  num_res_blocks: 5
+  dropout: 0.1
+  attn_dropout: 0.1
+  qkv_bias: false
+  num_heads: 8
+
+
+optimizer:
+  lr: 0.0003
+  betas:
+  - 0.9
+  - 0.999
+
+env:
+  compile: false
+  strategy: ddp  # change to ddp for dist.
+
+train:
+  num_iterations: 200000
+
+  running: 100
+  save_every: 10000
