@@ -126,6 +126,7 @@ def train_loop(
 
         for batch in dataset:
             image = batch.get('image').to(device)
+            gan_weight = 0.0 if batches_done < config.train.gan_from else config.train.gan_lambda
 
             disc_optim.zero_grad()
 
@@ -142,7 +143,7 @@ def train_loop(
 
             # D Loss.
             gan_d_loss = gan_loss_fn.d_loss(real_logits, fake_logits)
-            d_loss = gan_d_loss
+            d_loss = gan_d_loss * gan_weight
 
             # Backward and step.
             d_loss.backward()
@@ -154,9 +155,9 @@ def train_loop(
             fake_logits = disc(recon)
 
             # Loss.
-            gan_g_loss = gan_loss_fn.g_loss(fake_logits, image, recon) * config.train.gan_lambda
+            gan_g_loss, perceptual_loss = gan_loss_fn.g_loss(fake_logits, image, recon)
             recon_loss = criterion(recon, image)
-            g_loss = gan_g_loss + recon_loss + commit_loss
+            g_loss = gan_g_loss * gan_weight + recon_loss + commit_loss + perceptual_loss
 
             # Backward and step.
             g_loss.backward()
@@ -173,7 +174,8 @@ def train_loop(
                 progress_p = batches_done / config.train.num_iterations * 100
                 message = (
                     f'Progress: {progress_p:5.2f}% | Loss: {g_loss.item():8.5f} | G: {gan_g_loss.item():8.5f} | '
-                    f'MSE: {recon_loss.item():8.5f} | VQ: {commit_loss.item():8.5f} | D: {gan_d_loss.item():8.5f}'
+                    f'MSE: {recon_loss.item():8.5f} | VQ: {commit_loss.item():8.5f} | D: {gan_d_loss.item():8.5f} | '
+                    f'VGG: {perceptual_loss.item():8.5f}'
                 )
                 logger.info(message)
 

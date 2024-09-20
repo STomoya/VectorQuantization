@@ -63,7 +63,7 @@ class NonSaturatingGANLoss:
 
         real_loss = self.real_loss(fake_logits)
 
-        adaptive_weight = 1.0
+        perceptual_loss = 0.0
         if self.perceptual:
             perceptual_loss = self.lpips_fn(
                 F.interpolate(real, (224, 224), mode='bilinear'), F.interpolate(fake, (224, 224), mode='bilinear')
@@ -72,7 +72,7 @@ class NonSaturatingGANLoss:
             grad_norm_gan_loss = grad_layer_wrt_loss(real_loss, self.decoder_last_layer.weight).norm(p=2)
             grad_norm_vgg_loss = grad_layer_wrt_loss(perceptual_loss, self.decoder_last_layer.weight).norm(p=2)
             adaptive_weight = safe_div(grad_norm_vgg_loss, grad_norm_gan_loss)
+            adaptive_weight.clamp_(max=1e4)
+            real_loss = real_loss * adaptive_weight
 
-        real_loss = adaptive_weight * real_loss
-
-        return real_loss
+        return real_loss, perceptual_loss
