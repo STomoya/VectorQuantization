@@ -1,0 +1,62 @@
+run:
+  folder: checkpoint
+  name: vqgan.igpt-128
+
+logging:
+  filename: log.log
+  interval: 100
+  frequent_until: 100
+  frequent_interval: 5
+
+repr:
+  seed: 3407
+  use_deterministic_algorithms: true
+  warn_only: true
+  cudnn_benchmark: false
+
+vqvae:
+  config: checkpoint/vqgan.vae-128/model.json
+  pretrained: checkpoint/vqgan.vae-128/200.00k.pt
+
+data:
+  image_size: 128
+  dataset_dir: data/imagenet/train
+
+  batch_size: 32
+  num_workers: 8
+
+model:
+  num_embeddings: 4096
+  seq_length: 256
+  dims: 196
+  num_layers: 12
+  num_heads: 8
+  head_dims: null
+  qkv_bias: false
+  proj_bias: true
+  bias: true
+  activation: gelu
+  mlp_ratio: 4.0
+  attn_dropout: 0.0
+  proj_dropout: 0.0
+  dropout: 0.0
+  rms_norm: true
+  eps: 1.0e-6
+  layer_scale_init: 1.0e-5
+
+
+optimizer:
+  lr: 0.001
+  betas:
+  - 0.9
+  - 0.999
+
+env:
+  compile: false
+  strategy: ddp  # change to ddp for dist.
+
+train:
+  num_iterations: 200000
+
+  running: 100
+  save_every: 10000
